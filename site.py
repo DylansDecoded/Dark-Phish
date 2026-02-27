@@ -7,18 +7,12 @@ try:
 	import os
 	import time
 	import json
-	from bs4 import BeautifulSoup
 	import requests
 	import platform, subprocess
-	import wget
 	import shutil
-	import requests 
 	import pyshorteners
 	import sqlite3
 	import argparse
-	import shutil
-	from tkinter import *
-	from tkinter import messagebox
 except ModuleNotFoundError as error:
 	print(error)
 	sys.exit()
@@ -40,7 +34,7 @@ try:
 	if ("-h" in sys.argv or "--help" in sys.argv):
 		print("""\033[1m
 Name:
-    Dark-Phish
+    DataCloudEasy Site
     
 Usage:
     python3 site.py [-h] [-H HOST] [-p PORT] [-u] [-v] [-r]
