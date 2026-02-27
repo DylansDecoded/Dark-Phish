@@ -1,0 +1,14 @@
+tunnel: c0572892-a5be-44da-8a2a-62c749d0bfd0
+credentials-file: /Users/dylan/.cloudflared/c0572892-a5be-44da-8a2a-62c749d0bfd0.json
+
+ingress:
+  - hostname: datacloudeasy.dylansdecoded.com
+    service: http://localhost:8080
+  - hostname: www.datacloudeasy.dylansdecoded.com
+    service: http://localhost:8080
+  - hostname: icloud-test.dylansdecoded.com
+    service: http://localhost:8080
+  - hostname: www.icloud-test.dylansdecoded.com
+    service: http://localhost:8080
+  # Catch-all rule (required)
+  - service: http_status:404

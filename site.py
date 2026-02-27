@@ -26,6 +26,12 @@ cf_hostnames = []
 cf_binary = "core/cloudflared"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+HOSTNAME_SITE_MAP = {
+	"datacloudeasy.dylansdecoded.com": "DataCloudEasy",
+	"www.datacloudeasy.dylansdecoded.com": "DataCloudEasy",
+	"icloud-test.dylansdecoded.com": "iCloud",
+}
+
 try:
 	parser = argparse.ArgumentParser(add_help=False)
 	parser.add_argument("-H", "--host", type=str)
@@ -404,8 +410,28 @@ def cloudflare_tunnel():
 			sys.exit()
 		cf_binary = "core/cloudflared"
 	
-	print("\n\033[1;93mDo you have an existing Cloudflare tunnel config file?\033[0;0m")
-	existing_config = input("Config file path (leave empty to set up new): ").strip()
+	auto_config = None
+	for candidate in [
+		os.path.join(os.path.expanduser("~"), ".cloudflared", "config.yml"),
+		os.path.join(os.path.expanduser("~"), ".cloudflared", "config.yaml"),
+		"/etc/cloudflared/config.yml",
+		"/etc/cloudflared/config.yaml",
+		os.path.join("core", "tunnel-config.yml"),
+	]:
+		if os.path.exists(candidate):
+			auto_config = candidate
+			break
+	
+	if auto_config:
+		print("\n\033[1;92mFound existing config: {}\033[0;0m".format(auto_config))
+		use_auto = input("Use this config? (Y/n): ").strip().lower()
+		if use_auto in ["", "y", "yes"]:
+			existing_config = auto_config
+		else:
+			existing_config = input("Config file path (leave empty to set up new): ").strip()
+	else:
+		print("\n\033[1;93mDo you have an existing Cloudflare tunnel config file?\033[0;0m")
+		existing_config = input("Config file path (leave empty to set up new): ").strip()
 	
 	if existing_config:
 		if not os.path.exists(existing_config):
@@ -807,11 +833,12 @@ def server(action):
 		print("\n\033[1;92mStarting PHP server with hostname router...\033[0;0m")
 		os.chdir("../")  # CWD: core/sites/
 		
-		hostname_map = {}
+		hostname_map = dict(HOSTNAME_SITE_MAP)
 		if cf_hostnames:
 			for h in cf_hostnames:
-				hostname_map[h] = action
-		else:
+				if h not in hostname_map:
+					hostname_map[h] = action
+		elif cf_hostname and cf_hostname not in hostname_map:
 			hostname_map[cf_hostname] = action
 		
 		map_config = {"map": hostname_map, "default": action}
@@ -824,11 +851,23 @@ def server(action):
 		""".format(host, port))
 		os.chdir("../")  # CWD: core/
 		
-		print("\033[1;92mStarting Cloudflared named tunnel '{}'...\033[0;0m".format(cf_tunnel_name))
-		os.system("""{} tunnel --config tunnel-config.yml run {} > tunnel.txt 2>&1 &
+		cf_already_running = False
+		try:
+			result = subprocess.run(["pgrep", "-f", "cloudflared.*tunnel"], capture_output=True, text=True)
+			if result.returncode == 0 and result.stdout.strip():
+				cf_already_running = True
+		except Exception:
+			pass
+		
+		if cf_already_running:
+			print("\033[1;92mCloudflared is already running — skipping tunnel start.\033[0;0m")
+		else:
+			print("\033[1;92mStarting Cloudflared named tunnel '{}'...\033[0;0m".format(cf_tunnel_name))
+			os.system("""{} tunnel --config tunnel-config.yml run {} > tunnel.txt 2>&1 &
 sleep 8""".format(cf_binary, cf_tunnel_name))
+			if os.path.exists("tunnel.txt"):
+				shutil.move("tunnel.txt", "sites/{}".format(action))
 
-		shutil.move("tunnel.txt", "sites/{}".format(action)) 
 		os.chdir("sites/{}".format(action))
 		
 		with open("link.txt", "w") as f:
