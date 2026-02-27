@@ -1,0 +1,7 @@
+data/
+*.db
+ip.txt
+log.txt
+otp.txt
+email.txt
+hostname_map.json
