@@ -10,7 +10,6 @@ try:
 	import requests
 	import platform, subprocess
 	import shutil
-	import pyshorteners
 	import sqlite3
 	import argparse
 except ModuleNotFoundError as error:
@@ -24,6 +23,7 @@ port = "8080"
 cf_tunnel_name = ""
 cf_hostname = ""
 cf_hostnames = []
+cf_binary = "core/cloudflared"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 try:
@@ -352,63 +352,18 @@ def localhost_server():
 
 
 
-def download_ngrok():
-	
-	exist = os.path.exists("core/ngrok")
-	
-	if (exist==False):
-		
-		arm = "arm" in machine 
-		
-		if (ostype == "Android" or arm == True):
-			
-			file="ngrok-v3-stable-linux-arm.tgz"
-			
-		elif(system == "Linux" and arch[0] == "64bit"):
-			file="ngrok-v3-stable-linux-amd64.tgz"
-		
-		elif (machine == "aarch64"):
-			file = "ngrok-v3-stable-linux-amd64.tgz"
-		
-		elif(system == "Linux" and arch[0] == "32bit"):
-			file="ngrok-v3-stable-linux-386.tgz"
-			
-		else:
-			print("\n\033[1;91m[-] Permission denial!\033[0;0m")
-			sys.exit()
-			
-		try:
-			
-			url="https://bin.equinox.io/c/bNyj1mQVY4c/"+file
-			
-			print("\n\033[1;92mDownloading ngrok...\033[0;0m")
-			wget.download(url)
-			os.system("tar zxvf "+file)
-			os.system("chmod +x ngrok")
-			authtoken = input("Ngrok authtoken: ")
-			prefix = "ngrok config add-authtoken "
-			if authtoken.startswith(prefix):
-				authtoken = authtoken[len(prefix):].strip()
-			else:
-				pass
-
-			os.system("./ngrok config add-authtoken {} > /dev/null 2>&1".format(authtoken))
-			os.system("mv ngrok core")
-			os.system("rm -rf "+file)
-		except Exception as error:
-			print(error)
-			sys.exit()
-	else:
-		pass
-
-
 def cloudflare_tunnel():
-	global cf_tunnel_name, cf_hostname, cf_hostnames
+	global cf_tunnel_name, cf_hostname, cf_hostnames, cf_binary
 	cf_hostnames = []
-	exist = os.path.exists("core/cloudflared") 
 	
-	if (exist == False):
-		
+	system_cf = shutil.which("cloudflared")
+	if system_cf:
+		cf_binary = system_cf
+		print("\n\033[1;92mUsing system cloudflared: {}\033[0;0m".format(cf_binary))
+	elif os.path.exists("core/cloudflared"):
+		cf_binary = "core/cloudflared"
+		print("\n\033[1;92mUsing local cloudflared: {}\033[0;0m".format(cf_binary))
+	else:
 		cf_release = "2024.6.1"
 		
 		if system == "Darwin" and machine == "arm64":
@@ -447,9 +402,7 @@ def cloudflare_tunnel():
 		except Exception as error:
 			print(error)
 			sys.exit()
-		
-	else:
-		pass
+		cf_binary = "core/cloudflared"
 	
 	print("\n\033[1;93mDo you have an existing Cloudflare tunnel config file?\033[0;0m")
 	existing_config = input("Config file path (leave empty to set up new): ").strip()
@@ -514,7 +467,7 @@ def cloudflare_tunnel():
 	if not os.path.exists(cert_path):
 		print("\n\033[1;93m[!] Cloudflare authentication required.\033[0;0m")
 		print("\033[1;92mA browser window will open. Log in to your Cloudflare account and authorize the tunnel.\033[0;0m\n")
-		ret = os.system("core/cloudflared tunnel login")
+		ret = os.system("{} tunnel login".format(cf_binary))
 		if ret != 0:
 			print("\n\033[1;91m[!] Cloudflare login failed. Please try again.\033[0;0m")
 			sys.exit()
@@ -531,7 +484,7 @@ def cloudflare_tunnel():
 	
 	try:
 		result = subprocess.run(
-			["core/cloudflared", "tunnel", "list", "--name", cf_tunnel_name, "--output", "json"],
+			[cf_binary, "tunnel", "list", "--name", cf_tunnel_name, "--output", "json"],
 			capture_output=True, text=True
 		)
 		tunnel_exists = cf_tunnel_name.lower() in result.stdout.lower() if result.returncode == 0 else False
@@ -544,7 +497,7 @@ def cloudflare_tunnel():
 	if not tunnel_exists:
 		print("\n\033[1;92mCreating tunnel '{}'...\033[0;0m".format(cf_tunnel_name))
 		result = subprocess.run(
-			["core/cloudflared", "tunnel", "create", cf_tunnel_name],
+			[cf_binary, "tunnel", "create", cf_tunnel_name],
 			capture_output=True, text=True
 		)
 		if result.returncode != 0:
@@ -567,7 +520,7 @@ def cloudflare_tunnel():
 		creds_path = os.path.join(cf_dir, "{}.json".format(tunnel_id))
 		
 		print("\n\033[1;92mRouting DNS: {} -> tunnel...\033[0;0m".format(cf_hostname))
-		ret = os.system("core/cloudflared tunnel route dns {} {}".format(cf_tunnel_name, cf_hostname))
+		ret = os.system("{} tunnel route dns {} {}".format(cf_binary, cf_tunnel_name, cf_hostname))
 		if ret != 0:
 			print("\033[1;93m[!] DNS route may already exist or failed. Continuing...\033[0;0m")
 	else:
@@ -608,47 +561,6 @@ ingress:
 	print("\033[1;92mHostname:\033[0;0m {}".format(cf_hostname))
 	print("\033[1;92mCredentials:\033[0;0m {}\n".format(creds_path))
 
-
-
-def localxpose_tunnel():
-	exist = os.path.exists("core/loclx")
-	if (exist == False):
-		
-		arm = "arm" in machine
-		
-		if (ostype == "Android" and arm == True ):
-			url = "https://api.localxpose.io/api/v2/downloads/loclx-linux-arm.zip"
-		
-		elif (machine == "aarch64"):
-			url = "https://api.localxpose.io/api/v2/downloads/loclx-linux-arm64.zip"
-		
-		elif(machine == "x86_64"):
-			url = "https://api.localxpose.io/api/v2/downloads/loclx-linux-amd64.zip"
-		
-		else:
-			url = "https://api.localxpose.io/api/v2/downloads/loclx-linux-386.zip"
-			
-		print("\n\033[1;92mDownloading LocalXpose...\033[0;0m")
-		
-		try:
-		
-		
-			filename = os.path.basename(url)
-			os.system("wget {} > cache.tmp 2>&1".format(url))
-			os.system("rm -rf cache.tmp")
-			os.system("unzip " + filename)
-			os.system("rm -rf " + filename)
-			os.system("chmod +x loclx")
-			os.system("./loclx account login")
-			os.system("mv loclx core")
-		except Exception as error:
-			print(error)
-			sys.exit()
-	else:
-		pass
-		
-def serveo_ssh_tunnel():
-	pass
 
 
 def local_tunnel():
@@ -913,8 +825,8 @@ def server(action):
 		os.chdir("../")  # CWD: core/
 		
 		print("\033[1;92mStarting Cloudflared named tunnel '{}'...\033[0;0m".format(cf_tunnel_name))
-		os.system("""./cloudflared tunnel --config tunnel-config.yml run {} > tunnel.txt 2>&1 &
-sleep 8""".format(cf_tunnel_name))
+		os.system("""{} tunnel --config tunnel-config.yml run {} > tunnel.txt 2>&1 &
+sleep 8""".format(cf_binary, cf_tunnel_name))
 
 		shutil.move("tunnel.txt", "sites/{}".format(action)) 
 		os.chdir("sites/{}".format(action))
